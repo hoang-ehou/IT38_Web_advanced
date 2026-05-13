@@ -100,18 +100,23 @@ namespace MedicalBooking.Controllers
         }
 
         // GET: /Doctor/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public async Task<IActionResult> Edit(string? id)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return NotFound();
+
+            var userId = string.IsNullOrEmpty(id) ? currentUser.Id : id;
+
+            if (!User.IsInRole("Admin") && currentUser.Id != userId)
+            {
+                return Forbid();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null || !(user is Doctor))
             {
                 return NotFound();
-            }
-
-            var currentUser = await _userManager.GetUserAsync(User);
-            if (!User.IsInRole("Admin") && currentUser.Id != user.Id)
-            {
-                return Forbid();
             }
 
             var doctor = user as Doctor;
@@ -122,20 +127,25 @@ namespace MedicalBooking.Controllers
         // POST: /Doctor/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, Doctor model)
+        public async Task<IActionResult> Edit(string? id, Doctor model)
         {
-            if (id != model.Id)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return NotFound();
+
+            var userId = string.IsNullOrEmpty(id) ? currentUser.Id : id;
+
+            if (userId != model.Id)
             {
                 return NotFound();
             }
 
-            var user = await _userManager.FindByIdAsync(id);
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null || !(user is Doctor))
             {
                 return NotFound();
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
             if (!User.IsInRole("Admin") && currentUser.Id != user.Id)
             {
                 return Forbid();
@@ -148,7 +158,7 @@ namespace MedicalBooking.Controllers
                     user.FullName = model.FullName;
                     user.PhoneNumber = model.PhoneNumber;
                     user.DateOfBirth = model.DateOfBirth;
-                    
+
                     if (user is Doctor doctor)
                     {
                         doctor.Specialization = model.Specialization;

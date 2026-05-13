@@ -93,41 +93,50 @@ namespace MedicalBooking.Controllers
         }
 
         // GET: /Patient/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public async Task<IActionResult> Edit(string? id)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return NotFound();
+
+            var userId = string.IsNullOrEmpty(id) ? currentUser.Id : id;
+
+            if (!User.IsInRole("Admin") && currentUser.Id != userId)
+            {
+                return Forbid();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null || !(user is Patient))
             {
                 return NotFound();
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
-            if (!User.IsInRole("Admin") && currentUser.Id != user.Id)
-            {
-                return Forbid();
-            }
-
-            var patient = user as Patient;
-            return View(patient);
+            return View(user as Patient);
         }
 
         // POST: /Patient/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, Patient model)
+        public async Task<IActionResult> Edit(string? id, Patient model)
         {
-            if (id != model.Id)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return NotFound();
+
+            var userId = string.IsNullOrEmpty(id) ? currentUser.Id : id;
+
+            if (userId != model.Id)
             {
                 return NotFound();
             }
 
-            var user = await _userManager.FindByIdAsync(id);
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null || !(user is Patient))
             {
                 return NotFound();
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
             if (!User.IsInRole("Admin") && currentUser.Id != user.Id)
             {
                 return Forbid();
