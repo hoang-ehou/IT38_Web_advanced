@@ -1,0 +1,189 @@
+@{
+    ViewData["Title"] = "Appointments";
+    var currentUserId = ViewBag.CurrentUserId as string;
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@Html.AntiForgeryToken()
+
+<div class="row mb-3">
+    <div class="col-md-6 position-relative">
+        <input type="text" id="searchInput" class="form-control pe-5" placeholder="Search by patient name, doctor name, or notes..." value="" />
+        <button type="button" id="clearBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;" onclick="clearSearch()">
+            &times;
+        </button>
+    </div>
+</div>
+
+<table class="table table-striped" id="appointmentsTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Date & Time</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be loaded via AJAX -->
+        <tr>
+            <td colspan="6" class="text-center">Loading...</td>
+        </tr>
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        let searchTimeout;
+
+        $(document).ready(function() {
+            loadAppointments();
+
+            // Real-time search with debounce
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadAppointments, 300);
+            });
+
+            // Initial state of clear button
+            toggleClearButton();
+        });
+
+        function toggleClearButton() {
+            const hasText = $('#searchInput').val().trim().length > 0;
+            $('#clearBtn').toggle(hasText);
+        }
+
+        function loadAppointments() {
+            var search = $('#searchInput').val();
+            var url = '/Api/Appointments';
+
+            var params = [];
+            if (search && search.trim()) {
+                params.push('search=' + encodeURIComponent(search.trim()));
+            }
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    const tbody = $('#appointmentsTable tbody');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.html('<tr><td colspan="6" class="text-center">No appointments found</td></tr>');
+                        return;
+                    }
+
+                    $.each(data, function(index, appt) {
+                        const statusClass = appt.status === 'Confirmed' ? 'success' :
+                                           appt.status === 'Cancelled' ? 'danger' :
+                                           appt.status === 'Completed' ? 'primary' : 'warning';
+
+                        const row = `
+                            <tr>
+                                <td>${appt.id}</td>
+                                <td>${escapeHtml(appt.patientName)}</td>
+                                <td>${escapeHtml(appt.doctorName + ' (' + appt.doctorSpecialization + ')')}</td>
+                                <td>${formatDateTime(appt.appointmentDate)}</td>
+                                <td>
+                                    <span class="badge bg-${statusClass}">${appt.status}</span>
+                                </td>
+                                <td>
+                                    ${appt.status === 'Completed' ?
+                                        `<a href="/Appointment/Details/${appt.id}" class="btn btn-sm btn-info">Details</a>` :
+                                        `<div class="dropdown">
+                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="/Appointment/Details/${appt.id}">Details</a>
+                                                </li>
+                                                ${canConfirm(appt) ? `
+                                                    <li>
+                                                        <form action="/Appointment/Confirm/${appt.id}" method="post" class="d-inline" onsubmit="return confirm('Confirm this appointment?');">
+                                                            <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                                            <button type="submit" class="dropdown-item text-success">Confirm</button>
+                                                        </form>
+                                                    </li>
+                                                ` : ''}
+                                                ${canComplete(appt) ? `
+                                                    <li>
+                                                        <form action="/Appointment/Complete/${appt.id}" method="post" class="d-inline" onsubmit="return confirm('Mark this appointment as completed?');">
+                                                            <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                                            <button type="submit" class="dropdown-item text-primary">Complete</button>
+                                                        </form>
+                                                    </li>
+                                                ` : ''}
+                                                ${canCancel(appt) ? `
+                                                    <li>
+                                                        <form action="/Appointment/Cancel/${appt.id}" method="post" class="d-inline" onsubmit="return confirm('Cancel this appointment?');">
+                                                            <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                                            <button type="submit" class="dropdown-item text-danger">Cancel</button>
+                                                        </form>
+                                                    </li>
+                                                ` : ''}
+                                            </ul>
+                                        </div>`
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading appointments:', error);
+                    $('#appointmentsTable tbody').html('<tr><td colspan="6" class="text-center text-danger">Error loading data</td></tr>');
+                }
+            });
+        }
+
+        function clearSearch() {
+            $('#searchInput').val('');
+            loadAppointments();
+            toggleClearButton();
+            $('#searchInput').focus();
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toISOString().replace('T', ' ').substring(0, 16);
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Determine if current user can confirm/cancel based on server-rendered info
+        function canConfirm(appt) {
+            // Simplified - show confirm button if status is Pending
+            return appt.status === 'Pending';
+        }
+
+        function canComplete(appt) {
+            // Show complete button for Confirmed or Pending appointments
+            // Admin and Doctor can complete (server will authorize)
+            return appt.status === 'Confirmed' || appt.status === 'Pending';
+        }
+
+        function canCancel(appt) {
+            // Simplified - show cancel button for non-completed/cancelled
+            return appt.status !== 'Completed' && appt.status !== 'Cancelled';
+        }
+    </script>
+}

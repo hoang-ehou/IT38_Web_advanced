@@ -1,0 +1,333 @@
+@{
+    ViewData["Title"] = "Statistics";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="row" id="stats-container">
+    <div class="col-md-3">
+        <div class="card text-center bg-primary text-white mb-3">
+            <div class="card-body">
+                <h3 class="card-title" id="totalDoctors">-</h3>
+                <p class="card-text">Doctors</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white mb-3">
+            <div class="card-body">
+                <h3 class="card-title" id="totalPatients">-</h3>
+                <p class="card-text">Patients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-info text-white mb-3">
+            <div class="card-body">
+                <h3 class="card-title" id="totalAppointments">-</h3>
+                <p class="card-text">Appointments</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-white mb-3">
+            <div class="card-body">
+                <h3 class="card-title" id="totalDepartments">-</h3>
+                <p class="card-text">Departments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Appointment Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Monthly Appointments (@DateTime.Now.Year)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Doctors by Department</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="departmentChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Upcoming Appointments (Next 7 Days)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upcomingAppointmentsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let statusChart, monthlyChart, departmentChart;
+
+        $(document).ready(function() {
+            console.log('Statistics page loaded');
+            loadOverviewStats();
+            loadStatusChart();
+            loadMonthlyChart();
+            loadDepartmentChart();
+            loadUpcomingAppointments();
+
+            // Refresh data every 60 seconds
+            setInterval(function() {
+                loadOverviewStats();
+                loadUpcomingAppointments();
+            }, 60000);
+        });
+
+        function loadOverviewStats() {
+            $.ajax({
+                url: '/Api/Statistics/Overview',
+                type: 'GET',
+                success: function(data) {
+                    $('#totalDoctors').text(data.totalDoctors);
+                    $('#totalPatients').text(data.totalPatients);
+                    $('#totalAppointments').text(data.totalAppointments);
+                    $('#totalDepartments').text(data.totalDepartments);
+
+                    // Update today appointments
+                    if ($('#todayAppointments').length) {
+                        $('#todayAppointments').text(data.todayAppointments);
+                    }
+                    if ($('#weeklyRevenue').length) {
+                        $('#weeklyRevenue').text('$' + data.weeklyRevenue.toFixed(2));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading overview stats:', error);
+                }
+            });
+        }
+
+        function loadStatusChart() {
+            $.ajax({
+                url: '/Api/Statistics/Overview',
+                type: 'GET',
+                success: function(data) {
+                    const ctx = document.getElementById('statusChart').getContext('2d');
+                    const statusData = data.appointmentStatus;
+
+                    if (statusChart) {
+                        statusChart.destroy();
+                    }
+
+                    statusChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
+                            datasets: [{
+                                data: [
+                                    statusData.pending,
+                                    statusData.confirmed,
+                                    statusData.completed,
+                                    statusData.cancelled
+                                ],
+                                backgroundColor: [
+                                    '#ffc107',
+                                    '#17a2b8',
+                                    '#28a745',
+                                    '#dc3545'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading status chart:', error);
+                }
+            });
+        }
+
+        function loadMonthlyChart() {
+            $.ajax({
+                url: '/Api/Statistics/MonthlyAppointments',
+                type: 'GET',
+                success: function(data) {
+                    const ctx = document.getElementById('monthlyChart').getContext('2d');
+
+                    if (monthlyChart) {
+                        monthlyChart.destroy();
+                    }
+
+                    monthlyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.map(m => m.monthName),
+                            datasets: [{
+                                label: 'Appointments',
+                                data: data.map(m => m.count),
+                                borderColor: '#007bff',
+                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading monthly chart:', error);
+                }
+            });
+        }
+
+        function loadDepartmentChart() {
+            $.ajax({
+                url: '/Api/Statistics/DoctorsByDepartment',
+                type: 'GET',
+                success: function(data) {
+                    const ctx = document.getElementById('departmentChart').getContext('2d');
+
+                    if (departmentChart) {
+                        departmentChart.destroy();
+                    }
+
+                    departmentChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(d => d.department),
+                            datasets: [{
+                                label: 'Number of Doctors',
+                                data: data.map(d => d.doctorCount),
+                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading department chart:', error);
+                }
+            });
+        }
+
+
+        function loadUpcomingAppointments() {
+            $.ajax({
+                url: '/Api/Statistics/UpcomingAppointments?days=7',
+                type: 'GET',
+                success: function(data) {
+                    const tbody = $('#upcomingAppointmentsTable');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.html('<tr><td colspan="4" class="text-center">No upcoming appointments</td></tr>');
+                        return;
+                    }
+
+                    $.each(data, function(index, appt) {
+                        const date = new Date(appt.appointmentDate);
+                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                        const statusClass = appt.status === 'Confirmed' ? 'badge bg-success' :
+                                           appt.status === 'Pending' ? 'badge bg-warning' :
+                                           appt.status === 'Cancelled' ? 'badge bg-danger' : 'badge bg-primary';
+
+                        const row = `
+                            <tr>
+                                <td>${formattedDate}</td>
+                                <td>${escapeHtml(appt.patientName)}</td>
+                                <td>${escapeHtml(appt.doctorName)}</td>
+                                <td><span class="${statusClass}">${appt.status}</span></td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading upcoming appointments:', error);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

@@ -1,0 +1,61 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<MedicalBooking.Models.ApplicationUser> SignInManager
+@inject UserManager<MedicalBooking.Models.ApplicationUser> UserManager
+
+@{
+    var currentUser = await UserManager.GetUserAsync(User);
+}
+
+<ul class="navbar-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                👤 @(currentUser?.FullName ?? "User")
+                @if (User.IsInRole("Admin"))
+                {
+                    <span class="badge bg-danger ms-1">Admin</span>
+                }
+                else if (User.IsInRole("Doctor"))
+                {
+                    <span class="badge bg-info ms-1">Doctor</span>
+                }
+                else if (User.IsInRole("Patient"))
+                {
+                    <span class="badge bg-success ms-1">Patient</span>
+                }
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                <li>
+                    @if (currentUser is MedicalBooking.Models.Doctor)
+                    {
+                        <a class="dropdown-item" asp-controller="Doctor" asp-action="Profile">My Profile</a>
+                    }
+                    else if (currentUser is MedicalBooking.Models.Patient)
+                    {
+                        <a class="dropdown-item" asp-controller="Patient" asp-action="Profile">My Profile</a>
+                    }
+                    else
+                    {
+                        <a class="dropdown-item" href="#">Profile</a>
+                    }
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="px-4 py-2">
+                        <button type="submit" class="btn btn-outline-danger w-100">Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Account" asp-action="Register">Register</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Account" asp-action="Login">Login</a>
+        </li>
+    }
+</ul>

@@ -1,0 +1,50 @@
+@model MedicalBooking.Models.Department
+
+@{
+    ViewData["Title"] = "Delete Department";
+}
+
+<h1>Delete Department</h1>
+
+<hr />
+<div class="alert alert-warning">
+    <strong>Warning!</strong> This action cannot be undone.
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-3">
+                @Html.DisplayNameFor(model => model.Name)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.Name)
+            </dd>
+        </dl>
+        <dl class="row">
+            <dt class="col-sm-3">
+                @Html.DisplayNameFor(model => model.Description)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.Description)
+            </dd>
+        </dl>
+
+        @if (Model.Doctors?.Any() == true)
+        {
+            <div class="alert alert-danger mt-3">
+                <strong>Cannot Delete!</strong> This department has @Model.Doctors.Count doctor(s) assigned.
+                <br /><small>Remove all doctors from this department before deleting.</small>
+            </div>
+        }
+
+        <form asp-action="Delete">
+            <input type="hidden" asp-for="Id" />
+            @if (Model.Doctors?.Any() != true)
+            {
+                <button type="submit" class="btn btn-danger">Delete</button>
+            }
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </form>
+    </div>
+</div>

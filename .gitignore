@@ -1,0 +1,158 @@
+## .NET Core
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+*.vcxproj.user
+*.dbmdl
+*.pdb
+*.mdf
+*.ldf
+*.ndf
+
+## Rider
+.idea/
+*.sln.iml
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## NuGet
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+packages/
+*.nupkg
+*.snupkg
+
+## .NET Core CLI
+project.json
+global.json
+artifacts/
+
+## ASP.NET Core
+*.apphost
+.secret/user
+.secret/keys
+
+## Entity Framework
+*.db
+*.sqlite
+*.sqlite3
+
+## macOS
+.DS_Store
+
+## Windows
+[Tt]humbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+## Temporary files
+*.tmp
+*.temp
+*.log
+*.vspscc
+*.vssscc
+$tf/
+
+## IIS
+*.iisexpress.publish.xml
+
+## Edge
+*.msedge*.json
+
+## Chrome
+*.googlechrome*.json
+
+## VS Code
+.vscode/
+
+## MIME type mapping
+.mimetypes
+
+## ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## NCrunch
+*.ncrunch*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+## MSTest test results
+[Tt]est[Rr]esults/
+[Tt]est[Rr]esult/
+
+## Bower
+wwwroot/lib/
+bower_components/
+
+## npm
+node_modules/
+npm-debug.log
+yarn-error.log
+
+## Publish
+publish/
+*.pubxml
+*.pubxml.user
+
+## WebDeploy
+*.wpp.targets
+
+## Azure
+*.azurePubxml
+*.azurePubxml.user
+
+## Local storage
+*.local
+
+## Docker
+.dockerignore
+
+## JetBrains Rider
+.idea/
+*.sln.iml
+
+## OS generated files
+Thumbs.db
+.DS_Store
+
+## EF Core migrations (optional - keep if you want to track migrations)
+# !/Migrations/
+
+## Environment files
+.env
+.env.local
+.env.*.local
+
+## SSL certificates
+*.pfx
+*.p12
+
+## Cache
+.cache/

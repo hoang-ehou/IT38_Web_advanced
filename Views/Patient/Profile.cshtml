@@ -1,0 +1,26 @@
+@model MedicalBooking.Models.Patient
+
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-3">Full Name</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.PhoneNumber</dd>
+
+            <dt class="col-sm-3">Date of Birth</dt>
+            <dd class="col-sm-9">@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))</dd>
+        </dl>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit Profile</a>
+    </div>
+</div>

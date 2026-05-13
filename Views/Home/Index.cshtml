@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-4">Medical Booking System</h1>
+        <p class="lead">Book appointments with trusted doctors online</p>
+        @if (User.Identity?.IsAuthenticated == false)
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg">Get Started</a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary btn-lg">Register</a>
+        }
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h2 class="display-4 text-primary">@ViewBag.DepartmentCount</h2>
+                    <p class="card-text text-muted">Departments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h2 class="display-4 text-success">@ViewBag.DoctorCount</h2>
+                    <p class="card-text text-muted">Doctors</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h2 class="display-4 text-warning">@ViewBag.RecentAppointments.Count</h2>
+                    <p class="card-text text-muted">Recent Bookings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5 card-title">Easy Booking</h3>
+                    <p class="card-text">Book appointments online in just a few clicks. No need to call or visit in person.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5 card-title">Trusted Doctors</h3>
+                    <p class="card-text">Choose from our network of qualified and experienced medical professionals.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5 card-title">24/7 Access</h3>
+                    <p class="card-text">Access your appointment history and manage bookings anytime, anywhere.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

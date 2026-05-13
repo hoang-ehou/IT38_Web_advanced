@@ -1,0 +1,120 @@
+@{
+    ViewData["Title"] = "Departments";
+}
+
+<h1>Departments</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New</a>
+</p>
+
+<div class="row mb-3">
+    <div class="col-md-6 position-relative">
+        <input type="text" id="searchInput" class="form-control pe-5" placeholder="Search by name or description..." value="" />
+        <button type="button" id="clearBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;" onclick="clearSearch()">
+            &times;
+        </button>
+    </div>
+</div>
+
+<table class="table table-striped" id="departmentsTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Doctor Count</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be loaded via AJAX -->
+        <tr>
+            <td colspan="4" class="text-center">Loading...</td>
+        </tr>
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        let searchTimeout;
+
+        $(document).ready(function() {
+            loadDepartments();
+
+            // Real-time search with debounce
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadDepartments, 300);
+
+                // Show/hide clear button
+                toggleClearButton();
+            });
+
+            // Initial state of clear button
+            toggleClearButton();
+        });
+
+        function toggleClearButton() {
+            const hasText = $('#searchInput').val().trim().length > 0;
+            $('#clearBtn').toggle(hasText);
+        }
+
+        function loadDepartments() {
+            var search = $('#searchInput').val();
+            var url = '/Api/Department/GetAll';
+
+            if (search && search.trim()) {
+                url += '?search=' + encodeURIComponent(search.trim());
+            }
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    const tbody = $('#departmentsTable tbody');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.html('<tr><td colspan="4" class="text-center">No departments found</td></tr>');
+                        return;
+                    }
+
+                    $.each(data, function(index, dept) {
+                        const row = `
+                            <tr>
+                                <td>${escapeHtml(dept.name)}</td>
+                                <td>${escapeHtml(dept.description || '')}</td>
+                                <td>${dept.doctorCount}</td>
+                                <td>
+                                    <a href="/Department/Edit/${dept.id}" class="btn btn-sm btn-warning">Edit</a>
+                                    <form action="/Department/Delete/${dept.id}" method="post" class="d-inline" onsubmit="return confirm('Delete this department?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading departments:', error);
+                    $('#departmentsTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading data</td></tr>');
+                }
+            });
+        }
+
+        function clearSearch() {
+            $('#searchInput').val('');
+            loadDepartments();
+            toggleClearButton();
+            $('#searchInput').focus();
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

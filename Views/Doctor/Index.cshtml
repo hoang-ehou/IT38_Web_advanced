@@ -1,0 +1,131 @@
+@{
+    ViewData["Title"] = "Doctors";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New</a>
+</p>
+
+<div class="row mb-3">
+    <div class="col-md-6 position-relative">
+        <input type="text" id="searchInput" class="form-control pe-5" placeholder="Search by name, email, or specialization..." value="" />
+        <button type="button" id="clearBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;" onclick="clearSearch()">
+            &times;
+        </button>
+    </div>
+</div>
+
+<table class="table table-striped" id="doctorsTable">
+    <thead>
+        <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Specialization</th>
+            <th>Department</th>
+            <th>Fee</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be loaded via AJAX -->
+        <tr>
+            <td colspan="6" class="text-center">Loading...</td>
+        </tr>
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        let searchTimeout;
+
+        $(document).ready(function() {
+            loadDoctors();
+
+            // Real-time search with debounce
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadDoctors, 300);
+            });
+
+            // Initial state of clear button
+            toggleClearButton();
+        });
+
+        function toggleClearButton() {
+            const hasText = $('#searchInput').val().trim().length > 0;
+            $('#clearBtn').toggle(hasText);
+        }
+
+        function loadDoctors() {
+            var search = $('#searchInput').val();
+            var url = '/Api/Doctors';
+
+            var params = [];
+            if (search && search.trim()) {
+                params.push('search=' + encodeURIComponent(search.trim()));
+            }
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    const tbody = $('#doctorsTable tbody');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.html('<tr><td colspan="6" class="text-center">No doctors found</td></tr>');
+                        return;
+                    }
+
+                    $.each(data, function(index, doctor) {
+                        const row = `
+                            <tr>
+                                <td>${escapeHtml(doctor.fullName)}</td>
+                                <td>${escapeHtml(doctor.email)}</td>
+                                <td>${escapeHtml(doctor.specialization)}</td>
+                                <td>${escapeHtml(doctor.departmentName || 'N/A')}</td>
+                                <td>${formatCurrency(doctor.consultationFee)}</td>
+                                <td>
+                                    <a href="/Doctor/Edit/${doctor.id}" class="btn btn-sm btn-warning">Edit</a>
+                                    <form action="/Doctor/Delete/${doctor.id}" method="post" class="d-inline" onsubmit="return confirm('Delete this doctor?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading doctors:', error);
+                    $('#doctorsTable tbody').html('<tr><td colspan="6" class="text-center text-danger">Error loading data</td></tr>');
+                }
+            });
+        }
+
+        function clearSearch() {
+            $('#searchInput').val('');
+            loadDoctors();
+            toggleClearButton();
+            $('#searchInput').focus();
+        }
+
+        function formatCurrency(value) {
+            if (value === null || value === undefined) return 'N/A';
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

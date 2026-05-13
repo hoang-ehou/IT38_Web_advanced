@@ -1,0 +1,128 @@
+@{
+    ViewData["Title"] = "Patients";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (User.IsInRole("Admin"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New Patient</a>
+    </p>
+}
+
+<div class="row mb-3">
+    <div class="col-md-6 position-relative">
+        <input type="text" id="searchInput" class="form-control pe-5" placeholder="Search by name, email, or phone..." value="" />
+        <button type="button" id="clearBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;" onclick="clearSearch()">
+            &times;
+        </button>
+    </div>
+</div>
+
+<table class="table table-striped" id="patientsTable">
+    <thead>
+        <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Date of Birth</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be loaded via AJAX -->
+        <tr>
+            <td colspan="5" class="text-center">Loading...</td>
+        </tr>
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        let searchTimeout;
+
+        $(document).ready(function() {
+            loadPatients();
+
+            // Real-time search with debounce
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadPatients, 300);
+            });
+
+            // Initial state of clear button
+            toggleClearButton();
+        });
+
+        function toggleClearButton() {
+            const hasText = $('#searchInput').val().trim().length > 0;
+            $('#clearBtn').toggle(hasText);
+        }
+
+        function loadPatients() {
+            var search = $('#searchInput').val();
+            var url = '/Api/Patients';
+
+            if (search && search.trim()) {
+                url += '?search=' + encodeURIComponent(search.trim());
+            }
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    const tbody = $('#patientsTable tbody');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.html('<tr><td colspan="5" class="text-center">No patients found</td></tr>');
+                        return;
+                    }
+
+                    $.each(data, function(index, patient) {
+                        const row = `
+                            <tr>
+                                <td>${escapeHtml(patient.fullName)}</td>
+                                <td>${escapeHtml(patient.email)}</td>
+                                <td>${escapeHtml(patient.phoneNumber || '')}</td>
+                                <td>${formatDate(patient.dateOfBirth)}</td>
+                                <td>
+                                    <a href="/Patient/Edit/${patient.id}" class="btn btn-sm btn-warning">Edit</a>
+                                    <form action="/Patient/Delete/${patient.id}" method="post" class="d-inline" onsubmit="return confirm('Delete this patient?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading patients:', error);
+                    $('#patientsTable tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading data</td></tr>');
+                }
+            });
+        }
+
+        function clearSearch() {
+            $('#searchInput').val('');
+            loadPatients();
+            toggleClearButton();
+            $('#searchInput').focus();
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toISOString().split('T')[0];
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}
